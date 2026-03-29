@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Support Agent</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; }
+        .chat-box { background: white; border-radius: 10px; padding: 20px; height: 500px; overflow-y: auto; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .message { margin: 10px 0; padding: 10px 15px; border-radius: 10px; max-width: 70%; }
+        .user { background: #007bff; color: white; margin-left: auto; text-align: right; }
+        .assistant { background: #e9ecef; color: #333; }
+        .input-area { display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        button { padding: 12px 20px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        .session-info { text-align: center; margin-bottom: 10px; color: #666; font-size: 12px; }
+        #new-session-btn { background: #28a745; margin-bottom: 10px; width: 100%; }
+        #new-session-btn:hover { background: #1e7e34; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Customer Support Agent</h1>
+        <button id="new-session-btn" onclick="newSession()">Start New Session</button>
+        <div class="session-info" id="session-info">No active session</div>
+        <div class="chat-box" id="chat-box"></div>
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Type your message..." onkeypress="handleKey(event)"/>
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+
+        async function newSession() {
+            const res = await fetch("http://localhost:8000/new_session");
+            const data = await res.json();
+            sessionId = data.session_id;
+            document.getElementById("session-info").innerText = "Session: " + sessionId;
+            document.getElementById("chat-box").innerHTML = "";
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById("user-input");
+            const message = input.value.trim();
+            if (!message) return;
+
+            addMessage(message, "user");
+            input.value = "";
+
+            const res = await fetch("http://localhost:8000/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: message, session_id: sessionId })
+            });
+
+            const data = await res.json();
+            sessionId = data.session_id;
+            addMessage(data.reply, "assistant");
+        }
+
+        function addMessage(text, role) {
+            const chatBox = document.getElementById("chat-box");
+            const div = document.createElement("div");
+            div.classList.add("message", role);
+            div.innerText = text;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function handleKey(event) {
+            if (event.key === "Enter") sendMessage();
+        }
+    </script>
+</body>
+</html>
